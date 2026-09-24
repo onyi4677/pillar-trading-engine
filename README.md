@@ -68,5 +68,6 @@ These pillars vote on direction and confidence. A trade only executes when all g
 This bot is experimental. Past performance does not guarantee future results. Use at your own risk.
 
 ## Contact
-I’m open to remote roles in blockchain engineering, quantitative development, or AI‑driven trading systems.  
-[https://www.linkedin.com/in/onyemaechi-w-ab1755420/] | [onyi4677@gmail.com]
+blockchain engineering, quantitative development, or AI‑driven trading systems.  
+Developed by Onyeamechi Favour Wisdom, founder of Onyitech JournalHub Ltd.
+ | onyitechub.com
