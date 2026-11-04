@@ -10,18 +10,15 @@ The active main function starts `run_sync_trading()` in a daemon thread. The wor
 
 ## Priority findings for controlled validation
 
-### 1. Mutable signal quantity is restored immediately after scheduling
+### 1. Risk-adjusted quantity is not evidently used by the order-sizing path
 
-In `run_sync_trading()` (approximately lines 8579–8740):
+In `run_sync_trading()` (approximately lines 8539–8740), the worker computes `adjusted_quantity = signal.quantity * risk_result['position_multiplier']`, temporarily assigns it to `signal.quantity`, schedules `execute_trade(signal)`, and immediately restores the original value.
 
-- The worker stores `original_quantity = signal.quantity`.
-- It assigns `signal.quantity = adjusted_quantity`.
-- It submits `self.execute_trade(signal)` using `asyncio.run_coroutine_threadsafe(...)`.
-- It restores `signal.quantity = original_quantity` immediately after submission.
+AST inspection of `execute_trade()` finds no direct read of `signal.quantity`. Instead, that method independently calculates `position_size` from a fixed target notional (currently $110), current price, DCA first-leg fraction, and the market-regime position multiplier. It does not visibly apply `signal.risk_multiplier` or the risk manager's earlier `adjusted_quantity` to this final size.
 
-The coroutine is scheduled on another thread's event loop. It may begin before or after the restoration. This creates a timing-dependent risk that `execute_trade()` reads the original quantity instead of the risk-adjusted quantity. The exact outcome depends on event-loop scheduling and when the coroutine reads the mutable object.
+Therefore, the earlier risk-manager position multiplier appears not to flow into the actual order quantity on this path. The temporary mutation/restoration is also timing-sensitive, but the more important finding is that the final order size is independently recomputed.
 
-**Validation:** use a deterministic test event loop and a fake execution method that records the quantity at coroutine start and at order construction. Test both delayed and immediate loop execution. Do not test by placing a live order.
+**Validation:** with fake exchange calls, vary only the risk manager's `position_multiplier` while keeping signal, price, and regime constant. Record the quantity passed to `binance.place_order()` and verify whether it changes. Do not place a live order.
 
 ### 2. Blockchain confidence can persist across signal iterations
 
